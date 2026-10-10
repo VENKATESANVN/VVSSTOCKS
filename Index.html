@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NSE Stock Month / Day Analysis</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#0b1220;--card:#131c31;--card2:#1a2542;--text:#e8edf7;--mute:#93a0ba;--gold:#fbbf24;--green:#22c55e;--red:#ef4444;--line:#24314f;--blue:#3b82f6}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f4f6fb;--card:#fff;--card2:#eef2fb;--text:#14203a;--mute:#5b6985;--gold:#b7791f;--line:#dbe2f0}}
+:root[data-theme="dark"]{--bg:#0b1220;--card:#131c31;--card2:#1a2542;--text:#e8edf7;--mute:#93a0ba;--gold:#fbbf24;--line:#24314f}
+:root[data-theme="light"]{--bg:#f4f6fb;--card:#fff;--card2:#eef2fb;--text:#14203a;--mute:#5b6985;--gold:#b7791f;--line:#dbe2f0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+a{color:inherit;text-decoration:none}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{max-width:1100px;margin:auto;display:flex;align-items:center;gap:12px;padding:12px 20px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:1.1rem;margin-right:auto}.logo span{color:var(--gold)}
+.nav a.l{padding:8px 14px;border-radius:999px;color:var(--mute);font-weight:600;font-size:.92rem}
+.nav a.l:hover,.nav a.l.on{background:var(--card2);color:var(--text)}
+.btn{display:inline-block;padding:12px 24px;border-radius:12px;font-weight:700;border:0;cursor:pointer;font-size:1rem;font-family:inherit}
+.btn.p{background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1a1200;box-shadow:0 6px 24px rgba(251,191,36,.3)}
+.btn.s{background:var(--card2);color:var(--text);border:1px solid var(--line)}
+.btn:hover{transform:translateY(-1px)}
+main{max-width:1100px;margin:auto;padding:30px 20px 60px}
+.page{display:none;animation:f .35s}.page.on{display:block}
+@keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hero{text-align:center;padding:50px 10px 30px}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.15;margin:0 0 14px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--gold),var(--green));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--mute);max-width:640px;margin:0 auto 26px;font-size:1.08rem}
+.row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.card h3{margin:8px 0 6px}.card p{margin:0;color:var(--mute);font-size:.95rem}
+.ic{font-size:1.7rem}
+h2{font-size:1.9rem;margin:0 0 8px}.sub{color:var(--mute);margin:0 0 24px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:34px}
+.stat{background:var(--card2);border-radius:14px;padding:18px;text-align:center}
+.stat b{display:block;font-size:1.7rem;color:var(--gold)}.stat span{color:var(--mute);font-size:.88rem}
+.mock{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:30px}
+.mock .bar{display:flex;gap:6px;padding:10px 14px;background:var(--card2)}
+.mock .bar i{width:10px;height:10px;border-radius:50%;background:var(--red)}.mock .bar i:nth-child(2){background:var(--gold)}.mock .bar i:nth-child(3){background:var(--green)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--gold);font-weight:700}
+.up{color:var(--green);font-weight:700}.dn{color:var(--red);font-weight:700}
+.launch{text-align:center;padding:40px 24px;background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:20px}
+.launch h2{margin-bottom:10px}
+.steps{counter-reset:s;display:grid;gap:14px}
+.steps .card{position:relative;padding-left:70px}
+.steps .card:before{counter-increment:s;content:counter(s);position:absolute;left:20px;top:20px;width:36px;height:36px;border-radius:50%;background:var(--gold);color:#1a1200;font-weight:800;display:grid;place-items:center}
+code{background:var(--card2);padding:2px 8px;border-radius:6px;font-size:.88rem}
+form{display:grid;gap:12px}
+input,textarea{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--text);font:inherit}
+textarea{min-height:130px;resize:vertical}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+footer{border-top:1px solid var(--line);text-align:center;color:var(--mute);padding:22px;font-size:.9rem}
+.note{font-size:.82rem;color:var(--mute);margin-top:14px}
+</style>
+</head>
+<body>
+<header><div class="nav">
+  <a class="logo" href="#home">📊 NSE<span>Analysis</span></a>
+  <a class="l" href="#home">Home</a><a class="l" href="#about">About Us</a><a class="l" href="#analysis">Stock Analysis</a><a class="l" href="#how">How It Works</a><a class="l" href="#contact">Contact</a>
+  <a class="btn p" href="#analysis" style="padding:9px 18px">▶ Launch App</a>
+</div></header>
+
+<main>
+<!-- HOME -->
+<section class="page" id="p-home">
+  <div class="hero">
+    <h1>Understand NSE stocks <em>month by month, day by day</em></h1>
+    <p>Analyse NIFTY 50, BANK NIFTY and all F&amp;O stocks with heatmaps, custom date ranges, column control and one-click Excel export.</p>
+    <div class="row"><a class="btn p" href="#analysis">📈 Open NSE Stock Analysis</a><a class="btn s" href="#about">Learn more</a></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>50</b><span>NIFTY stocks</span></div>
+    <div class="stat"><b>180+</b><span>F&amp;O stocks</span></div>
+    <div class="stat"><b>16</b><span>Sectors</span></div>
+    <div class="stat"><b>Free</b><span>To use</span></div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="ic">⚡</div><h3>One-click lists</h3><p>NIFTY 50, BANK NIFTY and NSE F&amp;O stocks selected instantly.</p></div>
+    <div class="card"><div class="ic">🔥</div><h3>Month heatmap</h3><p>See green and red months for every stock at a glance.</p></div>
+    <div class="card"><div class="ic">🧩</div><h3>Column manager</h3><p>Show, hide, move columns to front or back and save your layout.</p></div>
+    <div class="card"><div class="ic">📈</div><h3>TradingView charts</h3><p>Click a stock to open its daily chart.</p></div>
+    <div class="card"><div class="ic">📥</div><h3>Excel / CSV export</h3><p>Download exactly the layout you chose.</p></div>
+    <div class="card"><div class="ic">🗓️</div><h3>Custom ranges</h3><p>Jan-26 to Oct-26, or YTD, 6M, 12M, 24M presets.</p></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="page" id="p-about">
+  <h2>About Us</h2><p class="sub">Simple, fast and free market analysis tools for Indian traders and investors.</p>
+  <div class="two">
+    <div class="card"><h3>Our Mission</h3><p>We turn raw NSE price data into clear month-wise and day-wise views, so you can spot seasonality, strength and weakness in seconds, without complex software.</p></div>
+    <div class="card"><h3>The Developer</h3><p>Built and maintained by <b>Venkatesan V</b>, using Python, Streamlit and Yahoo Finance data, hosted free on Streamlit Community Cloud.</p></div>
+    <div class="card"><h3>What We Offer</h3><p>Month and day tables, sector filters, search, heatmap, TradingView links and Excel export.</p></div>
+    <div class="card"><h3>Data Sources</h3><p>Stock lists from NSE archives and prices from Yahoo Finance. Data is cached for 30 minutes.</p></div>
+  </div>
+  <p class="note">Disclaimer: for education and research only. This is not investment advice.</p>
+</section>
+
+<!-- ANALYSIS -->
+<section class="page" id="p-analysis">
+  <h2>NSE Stock Analysis</h2><p class="sub">One click opens the live Python app.</p>
+  <div class="launch">
+    <div style="font-size:2.6rem">🚀</div>
+    <h2>Ready to analyse?</h2>
+    <p style="color:var(--mute);max-width:520px;margin:0 auto 22px">Opens the Streamlit app in a new tab. Pick stocks, choose Month-YY range and press LOAD DATA.</p>
+    <a id="appBtn" class="btn p" href="#" target="_blank" rel="noopener">▶ Open NSE Stock Analysis</a>
+    <p class="note" id="appNote"></p>
+  </div>
+  <div class="mock">
+    <div class="bar"><i></i><i></i><i></i></div>
+    <div class="tw"><table>
+      <tr><th>Stock</th><th>Month</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Change %</th></tr>
+      <tr><td>HDFCBANK</td><td>Sep-26</td><td>1,012.40</td><td>1,058.10</td><td>1,001.00</td><td>1,049.30</td><td class="up">+3.64%</td></tr>
+      <tr><td>TCS</td><td>Sep-26</td><td>3,210.00</td><td>3,244.50</td><td>3,092.20</td><td>3,118.75</td><td class="dn">-2.84%</td></tr>
+      <tr><td>BHEL</td><td>Sep-26</td><td>242.10</td><td>263.40</td><td>238.90</td><td>259.60</td><td class="up">+7.23%</td></tr>
+      <tr><td>RELIANCE</td><td>Sep-26</td><td>1,420.00</td><td>1,451.80</td><td>1,398.60</td><td>1,437.20</td><td class="up">+1.21%</td></tr>
+    </table></div>
+  </div>
+  <p class="note">Sample preview with illustrative numbers only. Live data appears inside the app.</p>
+</section>
+
+<!-- HOW -->
+<section class="page" id="p-how">
+  <h2>How It Works</h2><p class="sub">Four easy steps.</p>
+  <div class="steps">
+    <div class="card"><h3>Select stocks</h3><p>Use NIFTY 50, BANK NIFTY or F&amp;O buttons, or search by code or company.</p></div>
+    <div class="card"><h3>Choose the period</h3><p>Pick From and To month, or use YTD, 6M, 12M, 24M.</p></div>
+    <div class="card"><h3>Load data</h3><p>Press LOAD DATA for month-wise or day-wise tables and the heatmap.</p></div>
+    <div class="card"><h3>Customise and export</h3><p>Arrange columns, then download CSV or Excel.</p></div>
+  </div>
+  <h2 style="margin-top:40px">Run it yourself</h2>
+  <div class="card"><p>Save your Python file as <code>app.py</code>, then run <code>pip install streamlit yfinance pandas requests openpyxl</code> and <code>streamlit run app.py</code>. To go live free, push to GitHub and deploy on Streamlit Community Cloud, then paste the app link into <code>APP_URL</code> in this page.</p></div>
+</section>
+
+<!-- CONTACT -->
+<section class="page" id="p-contact">
+  <h2>Contact Us</h2><p class="sub">Questions, feedback or feature ideas? Send a message.</p>
+  <div class="two">
+    <div class="card">
+      <form id="cf">
+        <input id="n" placeholder="Your name" required>
+        <input id="e" type="email" placeholder="Your email" required>
+        <textarea id="m" placeholder="Your message" required></textarea>
+        <button class="btn p" type="submit">Send Message</button>
+      </form>
+      <p class="note">Opens your email app with the message ready to send.</p>
+    </div>
+    <div class="card">
+      <h3>Get in touch</h3>
+      <p>👤 Venkatesan V</p>
+      <p>✉️ <span id="mailShow"></span></p>
+      <p>🌐 Streamlit Community Cloud</p>
+      <p style="margin-top:14px">We reply as soon as possible.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>© <span id="yr"></span> NSE Stock Month / Day Analysis · Developed by Venkatesan V · Not investment advice</footer>
+
+<script>
+// ====== EDIT THESE TWO LINES ======
+var APP_URL = "https://vvsscreener.streamlit.app";                       // e.g. "https://your-app.streamlit.app"
+var CONTACT_EMAIL = "venkatesan@vvsgroups.in";   // your email address
+// ==================================
+var pages=["home","about","analysis","how","contact"];
+function route(){
+  var h=(location.hash||"#home").slice(1); if(pages.indexOf(h)<0)h="home";
+  pages.forEach(function(p){document.getElementById("p-"+p).classList.toggle("on",p===h)});
+  document.querySelectorAll(".nav a.l").forEach(function(a){a.classList.toggle("on",a.getAttribute("href")==="#"+h)});
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange",route);route();
+document.getElementById("yr").textContent=new Date().getFullYear();
+document.getElementById("mailShow").textContent=CONTACT_EMAIL;
+var b=document.getElementById("appBtn"),note=document.getElementById("appNote");
+if(APP_URL){b.href=APP_URL}else{
+  b.addEventListener("click",function(e){e.preventDefault();note.textContent="Set APP_URL in the script to your deployed Streamlit link."});
+}
+document.getElementById("cf").addEventListener("submit",function(e){
+  e.preventDefault();
+  var s=encodeURIComponent("Website enquiry from "+n.value);
+  var body=encodeURIComponent(m.value+"\n\nFrom: "+n.value+" ("+e.target.e.value+")");
+  location.href="mailto:"+CONTACT_EMAIL+"?subject="+s+"&body="+body;
+});
+</script>
+</body>
+</html>
