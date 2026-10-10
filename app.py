@@ -1,5 +1,5 @@
 # ================================================================
-# NSE STOCK MONTH / DAY ANALYSIS - STREAMLIT VERSION (PRO 3)
+# NSE STOCK MONTH / DAY ANALYSIS - STREAMLIT VERSION (FINAL)
 # Free hosting: Streamlit Community Cloud
 # ================================================================
 # Local run:
@@ -9,10 +9,12 @@
 # Features
 #   - One-click NIFTY 50 / BANK NIFTY / NSE F&O stocks
 #   - Search by code / company, sector filter, custom symbols
-#   - Custom Month-YY range (Jan-26 -> Oct-26) + YTD / 6M / 12M / 24M
+#   - Custom Month-YY range + YTD / 6M / 12M / 24M
 #   - Month wise table, Day wise table, Month HEATMAP
-#   - COLUMN MANAGER (per user): show / hide, move to FRONT, move to BACK,
-#     Compact / Full layouts, save & load layout file
+#   - COLUMN MANAGER: show / hide, move to FRONT / BACK, Compact / Full,
+#     save & load layout file
+#   - Built-in candlestick chart (auto-loads, works for every NSE stock)
+#   - TradingView full-chart links (open in new tab)
 #   - Excel / CSV export (exports exactly the layout you chose)
 # ================================================================
 
@@ -28,10 +30,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 import pandas as pd
+import plotly.graph_objects as go
 import requests
 import streamlit as st
-import streamlit.components.v1 as components
 import yfinance as yf
+from plotly.subplots import make_subplots
 
 APP_NAME = "NSE Stock Month / Day Analysis"
 DEVELOPER = "Venkatesan V"
@@ -502,7 +505,7 @@ def run_load(stocks, mode, start, end):
 
 
 # ================================================================
-# TRADINGVIEW
+# CHARTS  (built-in candlestick; TradingView = link only)
 # ================================================================
 
 def tv_symbol(sym):
@@ -521,25 +524,43 @@ def tv_url(sym, label):
     return tv_link(sym) + "#" + str(label).replace("#", "")
 
 
-def tv_embed(sym, height=620):
-    html = """
-    <div id="tv_chart" style="height:%dpx;width:100%%"></div>
-    <script src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-      new TradingView.widget({
-        "autosize": true, "symbol": "NSE:%s", "interval": "D",
-        "timezone": "Asia/Kolkata", "theme": "dark", "style": "1",
-        "locale": "en", "enable_publishing": false,
-        "allow_symbol_change": true, "hide_side_toolbar": false,
-        "container_id": "tv_chart"
-      });
-    </script>""" % (height - 10, tv_symbol(sym))
-    components.html(html, height=height)
+def price_chart(sym, start, end, height=620):
+    """Candlestick + MA20/MA50 + volume, drawn from Yahoo Finance data."""
+    c_start = min(start, end - timedelta(days=180))   # always show context
+    daily = download_daily(price_store(), sym, c_start, end).copy()
+    daily["MA20"] = daily["Close"].rolling(20).mean()
+    daily["MA50"] = daily["Close"].rolling(50).mean()
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        row_heights=[0.78, 0.22], vertical_spacing=0.03)
+    fig.add_trace(go.Candlestick(
+        x=daily.index, open=daily["Open"], high=daily["High"],
+        low=daily["Low"], close=daily["Close"], name=sym,
+        increasing_line_color=GREEN, decreasing_line_color=RED),
+        row=1, col=1)
+    fig.add_trace(go.Scatter(x=daily.index, y=daily["MA20"], name="MA 20",
+                             line=dict(width=1.2, color="#fbbf24")),
+                  row=1, col=1)
+    fig.add_trace(go.Scatter(x=daily.index, y=daily["MA50"], name="MA 50",
+                             line=dict(width=1.2, color="#60a5fa")),
+                  row=1, col=1)
+    vol_colors = [GREEN if c >= o else RED
+                  for o, c in zip(daily["Open"], daily["Close"])]
+    fig.add_trace(go.Bar(x=daily.index, y=daily["Volume"],
+                         marker_color=vol_colors, name="Volume"),
+                  row=2, col=1)
+    fig.update_layout(template="plotly_dark", height=height,
+                      xaxis_rangeslider_visible=False, showlegend=True,
+                      legend=dict(orientation="h", y=1.04, x=0),
+                      margin=dict(l=10, r=10, t=30, b=10),
+                      title=f"NSE:{sym} · Daily")
+    fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
+    st.plotly_chart(fig, width="stretch")
 
 
 def chart_panel(symbols, picked, key):
     """Chart section: row-click selection, or choose a stock from the list."""
-    st.markdown("#### 📈 TradingView chart · Daily timeframe")
+    st.markdown("#### 📈 Price chart · Daily timeframe")
     if not symbols:
         return
     if picked in symbols:
@@ -554,9 +575,13 @@ def chart_panel(symbols, picked, key):
     show = c2.toggle("Show chart on this page", value=True,
                      key=f"chart_tog_{key}")
     if show:
-        tv_embed(sym)
-        st.caption("If the embedded chart says the symbol is unavailable, use "
-                   "the 'Open full chart' button.")
+        cur = st.session_state.get("res")
+        if not cur:
+            return
+        try:
+            price_chart(sym, cur["start"], cur["end"])
+        except Exception as exc:
+            st.warning(f"Could not draw chart for {sym}: {exc}")
 
 
 def picked_symbol(event, symbols):
@@ -829,14 +854,15 @@ with st.sidebar:
     st.caption(f"Developed By {DEVELOPER}")
 
     st.markdown("##### ⚡ Quick select (one click)")
+    picked_set = set(st.session_state["picked"])
     q1, q2 = st.columns(2)
     q1.button("⭐ NIFTY 50", on_click=set_picked, args=(groups["n50"],),
-              type="primary" if set(st.session_state["picked"]) == set(groups["n50"]) else "secondary")
+              type="primary" if picked_set == set(groups["n50"]) else "secondary")
     q2.button("🏦 BANK NIFTY", on_click=set_picked, args=(groups["bank"],),
-              type="primary" if set(st.session_state["picked"]) == set(groups["bank"]) else "secondary")
+              type="primary" if picked_set == set(groups["bank"]) else "secondary")
     q3, q4 = st.columns(2)
     q3.button("📑 NSE F&O", on_click=set_picked, args=(groups["fno"],),
-              type="primary" if set(st.session_state["picked"]) == set(groups["fno"]) else "secondary")
+              type="primary" if picked_set == set(groups["fno"]) else "secondary")
     q4.button("✖ CLEAR ALL", on_click=set_picked, args=([],))
 
     st.markdown("##### 🔎 Browse / filter list")
@@ -925,8 +951,7 @@ if load:
     elif mode == "DAY" and len(picked) > 60 and \
             not st.session_state.get("big_ok"):
         st.warning(f"Day wise data for {len(picked)} stocks is very large. "
-                   "Tick the confirmation box in the sidebar section below "
-                   "or use Month wise.")
+                   "Tick the confirmation box below or use Month wise.")
         st.session_state["need_big"] = True
     else:
         st.session_state.pop("need_big", None)
@@ -962,7 +987,6 @@ with tab_data:
 
         up = int((df["Direction"] == "UP").sum())
         dn = int((df["Direction"] == "DOWN").sum())
-        fl = int((df["Direction"] == "FLAT").sum())
         m1, m2, m3, m4, m5 = st.columns(5)
         m1.metric("Stocks", f"{df['Stock'].nunique():,}")
         m2.metric("Rows", f"{len(df):,}")
@@ -1060,8 +1084,8 @@ with tab_data:
                                         zip(row_syms, view_df["Company"])]
             st.caption(f"{len(view):,} rows · {len(order)} columns · "
                        "**click a Stock / Company name → TradingView Daily chart "
-                       "opens** · tick a row to show the chart below · click a "
-                       "header to sort")
+                       "opens in a new tab** · tick a row to show the chart "
+                       "below · click a header to sort")
             event = st.dataframe(
                 styled(view_disp, view_df["Direction"]), hide_index=True,
                 width="stretch",
@@ -1146,8 +1170,10 @@ Close = last trading day's close · Change % = (Close − Open) / Open.
 use *Compact* / *Full* layouts, and **save your layout** as a file to re-load next visit.
 The Excel / CSV download follows the same layout.
 
-**TradingView** — click any *Stock* or *Company* name in the table to open that stock's
-Daily chart on TradingView (new tab). Tick a row (or pick a stock) to show the chart on this page.
+**Charts** — a candlestick chart (with 20 / 50 day averages and volume) appears
+below the table automatically. Tick a row, or pick a stock from the list, to change it.
+Click any *Stock* or *Company* name, or the **Open full chart in TradingView** button,
+to open that stock's Daily chart on TradingView in a new tab.
 
 **Data sources** — NSE archives (stock lists) and Yahoo Finance via `yfinance` (prices).
 Prices are cached for 30 minutes to reduce requests.
