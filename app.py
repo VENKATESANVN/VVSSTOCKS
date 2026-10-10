@@ -813,6 +813,131 @@ div[data-testid="stSidebar"] .stButton>button{width:100%}
 </style>
 """, unsafe_allow_html=True)
 
+
+# ================================================================
+# WEBSITE SHELL  (Home / About / Stock Analysis / How / Contact)
+# ================================================================
+CONTACT_EMAIL = "venkatesan@vvsgroups.in"      # <-- EDIT: your email address
+SITE_PAGES = ["🏠 Home", "ℹ️ About Us", "📈 Stock Analysis",
+              "🧭 How It Works", "✉️ Contact"]
+ANALYSIS_PAGE = "📈 Stock Analysis"
+
+SITE_CSS = """
+<style>
+.hero{text-align:center;padding:42px 10px 22px}
+.hero h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.15;margin:0 0 12px;font-weight:800}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#fbbf24,#22c55e);
+ -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{opacity:.75;max-width:660px;margin:0 auto 10px;font-size:1.08rem}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}
+.scard{background:rgba(120,140,190,.10);border:1px solid rgba(120,140,190,.28);
+ border-radius:16px;padding:20px}
+.scard h3{margin:6px 0 6px;font-size:1.1rem}.scard p{margin:0;opacity:.75;font-size:.95rem}
+.scard .ic{font-size:1.7rem}
+.sstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin:22px 0}
+.sstat{background:rgba(251,191,36,.10);border-radius:14px;padding:16px;text-align:center}
+.sstat b{display:block;font-size:1.7rem;color:#fbbf24}.sstat span{opacity:.75;font-size:.88rem}
+.sfoot{text-align:center;opacity:.6;font-size:.88rem;padding:26px 0 6px}
+.stepn{display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;
+ border-radius:50%;background:#fbbf24;color:#1a1200;font-weight:800;margin-right:10px}
+</style>
+"""
+
+
+def go_analysis():
+    st.session_state["site_page"] = ANALYSIS_PAGE
+
+
+def card(icon, title, text):
+    return (f'<div class="scard"><div class="ic">{icon}</div>'
+            f'<h3>{title}</h3><p>{text}</p></div>')
+
+
+def render_site(page):
+    if page == "🏠 Home":
+        st.markdown("""
+<div class="hero"><h1>Understand NSE stocks <em>month by month, day by day</em></h1>
+<p>Analyse NIFTY 50, BANK NIFTY and all F&amp;O stocks with heatmaps, custom date
+ranges, column control and one-click Excel export.</p></div>""",
+                    unsafe_allow_html=True)
+        _, mid, _ = st.columns([1, 1, 1])
+        mid.button("📈  Open NSE Stock Analysis", type="primary",
+                   on_click=go_analysis, width="stretch")
+        st.markdown("""
+<div class="sstats">
+<div class="sstat"><b>50</b><span>NIFTY stocks</span></div>
+<div class="sstat"><b>180+</b><span>F&amp;O stocks</span></div>
+<div class="sstat"><b>16</b><span>Sectors</span></div>
+<div class="sstat"><b>Free</b><span>To use</span></div></div>""",
+                    unsafe_allow_html=True)
+        st.markdown('<div class="sgrid">' + "".join([
+            card("⚡", "One-click lists", "NIFTY 50, BANK NIFTY and NSE F&amp;O stocks selected instantly."),
+            card("🔥", "Month heatmap", "See green and red months for every stock at a glance."),
+            card("🧩", "Column manager", "Show, hide, move columns to front or back and save your layout."),
+            card("📈", "Interactive charts", "Candlestick chart with moving averages and volume, plus TradingView links."),
+            card("📥", "Excel / CSV export", "Download exactly the layout you chose."),
+            card("🗓️", "Custom ranges", "Jan-26 to Oct-26, or YTD, 6M, 12M, 24M presets."),
+        ]) + "</div>", unsafe_allow_html=True)
+
+    elif page == "ℹ️ About Us":
+        st.header("About Us")
+        st.caption("Simple, fast and free market analysis tools for Indian traders and investors.")
+        st.markdown('<div class="sgrid">' + "".join([
+            card("🎯", "Our Mission", "We turn raw NSE price data into clear month-wise and day-wise views so you can spot seasonality, strength and weakness in seconds."),
+            card("👤", "The Developer", f"Built and maintained by <b>{DEVELOPER}</b> using Python, Streamlit and Yahoo Finance data."),
+            card("🧰", "What We Offer", "Month and day tables, sector filters, search, heatmap, candlestick charts, TradingView links and Excel export."),
+            card("🗂️", "Data Sources", "Stock lists from NSE archives and prices from Yahoo Finance. Data is cached for 30 minutes."),
+        ]) + "</div>", unsafe_allow_html=True)
+        st.caption("Disclaimer: for education and research only. This is not investment advice.")
+
+    elif page == "🧭 How It Works":
+        st.header("How It Works")
+        for n, t, d in [
+            (1, "Select stocks", "Use NIFTY 50, BANK NIFTY or F&O buttons, or search by code or company."),
+            (2, "Choose the period", "Pick From and To month, or use YTD, 6M, 12M, 24M."),
+            (3, "Load data", "Press LOAD DATA for month-wise or day-wise tables and the heatmap."),
+            (4, "Customise and export", "Arrange columns, then download CSV or Excel.")]:
+            st.markdown(f'<div class="scard"><span class="stepn">{n}</span>'
+                        f'<b>{t}</b><p style="margin-top:6px">{d}</p></div>',
+                        unsafe_allow_html=True)
+        st.button("▶ Start analysing", type="primary", on_click=go_analysis)
+
+    elif page == "✉️ Contact":
+        st.header("Contact Us")
+        st.caption("Questions, feedback or feature ideas? Send a message.")
+        c1, c2 = st.columns(2)
+        with c1:
+            nm = st.text_input("Your name", key="ct_name")
+            em = st.text_input("Your email", key="ct_email")
+            msg = st.text_area("Your message", key="ct_msg", height=140)
+            link = (f"mailto:{CONTACT_EMAIL}?subject="
+                    f"{quote('Website enquiry from ' + nm)}&body="
+                    f"{quote(msg + chr(10) + chr(10) + 'From: ' + nm + ' (' + em + ')')}")
+            st.link_button("✉️ Send Message", link, type="primary")
+            st.caption("Opens your email app with the message ready to send.")
+        with c2:
+            st.markdown(f'<div class="scard"><h3>Get in touch</h3>'
+                        f'<p>👤 {DEVELOPER}</p><p>✉️ {CONTACT_EMAIL}</p>'
+                        f'<p>🌐 Streamlit Community Cloud</p></div>',
+                        unsafe_allow_html=True)
+
+    st.markdown(f'<div class="sfoot">© {date.today().year} {APP_NAME} · '
+                f'Developed by {DEVELOPER} · Not investment advice</div>',
+                unsafe_allow_html=True)
+
+
+st.markdown(SITE_CSS, unsafe_allow_html=True)
+st.session_state.setdefault("site_page", "🏠 Home")
+st.radio("Menu", SITE_PAGES, horizontal=True, key="site_page",
+         label_visibility="collapsed")
+site_page = st.session_state["site_page"]
+if site_page != ANALYSIS_PAGE:
+    st.markdown("<style>[data-testid='stSidebar'],"
+                "[data-testid='stSidebarCollapsedControl']{display:none}"
+                "</style>", unsafe_allow_html=True)
+    render_site(site_page)
+    st.stop()
+
 uni = get_universe()
 stocks_all = list(uni["stocks"])
 info = uni["info"]
